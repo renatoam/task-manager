@@ -3,18 +3,23 @@
     "id": "task3",
     "description": "Do the dishes",
     "completed": false,
-    "order": 3
+    "order": 2
   },
   {
     "id": "task4",
     "description": "Finish homework",
-    "completed": false,
-    "order": 2
+    "completed": true,
+    "order": 1
   },
   {
     "id": "task5",
     "description": "Read a book",
     "completed": false,
-    "order": 1
+    "order": 3
+  },
+  {
+    "id": "70007e12-4b0f-4358-8bc3-e58e8bca4aae",
+    "description": "Attend appointment",
+    "completed": false
   }
 ]
