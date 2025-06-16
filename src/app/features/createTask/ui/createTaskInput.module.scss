@@ -1,0 +1,36 @@
+.create_task {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  background-color: var(--surface);
+  border-radius: .5rem;
+  margin-block: 1rem;
+
+  &_icon {
+    display: block;
+    border: 0.1rem solid var(--border);
+    height: 1.5rem;
+    width: 1.5rem;
+    border-radius: 50%;
+  }
+
+  &_input {
+    flex: 1;
+    background-color: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+    font-weight: 400;
+    outline: none;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    &_label {
+      display: none;
+    }
+  }
+}

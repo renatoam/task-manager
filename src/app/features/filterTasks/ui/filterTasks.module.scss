@@ -1,0 +1,52 @@
+.filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+  padding-inline: 2rem;
+  gap: 1rem;
+}
+
+.remaining {
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  font-weight: 400;
+  flex: 1 1 30%;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex: 1 1 70%;
+
+  &_button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background-color: transparent;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+
+    &:is(:hover,.active) {
+      color: var(--color-primary);
+    }
+
+    &.clear {
+      color: var(--text-muted);
+      font-size: 1.125rem;
+      line-height: 1.5rem;
+      font-weight: 400;
+    }
+
+    &:last-child {
+      margin-left: auto;
+    }
+  }
+}

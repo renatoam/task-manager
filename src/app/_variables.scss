@@ -1,0 +1,37 @@
+// Breakpoints map
+$breakpoints: (
+  'mobile': 375px,
+  'tablet': 768px,
+  'desktop': 1440px
+);
+
+// Primary colors & gradients
+$color-primary: hsl(220, 98%, 61%);
+$gradient-check: linear-gradient(
+  to right,
+  hsl(192, 100%, 67%),
+  hsl(280, 87%, 65%)
+);
+
+// Light theme
+$light-colors: (
+  'bg': hsl(0, 0%, 98%),
+  'surface': hsl(236, 33%, 92%),
+  'border': hsl(233, 11%, 84%),
+  'text-muted': hsl(236, 9%, 61%),
+  'text': hsl(235, 19%, 35%)
+);
+
+// Dark theme
+$dark-colors: (
+  'bg': hsl(235, 21%, 11%),
+  'surface': hsl(235, 24%, 19%),
+  'text': hsl(234, 39%, 85%),
+  'text-hover': hsl(236, 33%, 92%),
+  'text-muted': hsl(234, 11%, 52%),
+  'text-strong': hsl(233, 14%, 35%),
+  'text-title': hsl(237, 14%, 26%)
+);
+
+// Typography tokens
+$font-size-body: 18px;

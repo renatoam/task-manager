@@ -1,0 +1,14 @@
+@use './variables' as v;
+
+@mixin respond-to($breakpoint) {
+  @media (min-width: map-get(v.$breakpoints, $breakpoint)) {
+    @content;
+  }
+}
+
+// Mixin to output CSS custom properties from a map
+@mixin generate-theme-variables($theme-map) {
+  @each $key, $val in $theme-map {
+    --#{$key}: #{$val};
+  }
+}

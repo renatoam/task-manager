@@ -1,0 +1,12 @@
+.tasks {
+  background-color: var(--surface);
+  border-radius: .5rem;
+  overflow: hidden;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  height: 4rem;
+  padding-inline: 2rem;
+}
