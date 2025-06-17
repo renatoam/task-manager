@@ -1,5 +1,5 @@
-import path from "path";
-import fs from "fs/promises";
+import { supabase } from "features/app/shared/config/supabase";
+import { Task } from "features/app/shared/model/task";
 
 interface SwapTask {
   id: string;
@@ -15,26 +15,43 @@ export async function POST(request: Request) {
   const body: SwapBody = await request.json();
   
   if (!body.source || !body.target) {
-    return new Response("Invalid request body", { status: 400 });
+    return Response.json("Invalid request body", { status: 400 });
   }
 
-  const filePath = path.join(process.cwd(), 'tasks.json');
-  const rawData = await fs.readFile(filePath, 'utf-8');
-  const data = JSON.parse(rawData);
-  const sourceTask = data.find((task: SwapTask) => task.id === body.source.id);
-  const targetTask = data.find((task: SwapTask) => task.id === body.target.id);
+  const { source, target } = body
+
+  const { data: targetUpdated, error: errorTarget } = await supabase
+    .from("tasks")
+    .update({ order: source.order })
+    .eq("id", target.id)
+    .select()
+    .overrideTypes<Task[], { merge: false }>();
+
+  console.log('POST Swap Target', { targetUpdated, errorTarget });
   
-  if (!sourceTask || !targetTask) {
-    return new Response("Tasks not found", { status: 404 });
+  if (errorTarget) {
+    console.error("Error updating target task:", errorTarget);
+    return Response.json("Error updating target task", { status: 500 });
+  }
+  
+  const { data: sourceUpdated, error: errorSource } = await supabase
+    .from("tasks")
+    .update({ order: target.order })
+    .eq("id", source.id)
+    .select()
+    .overrideTypes<Task[], { merge: false }>();
+
+  console.log('POST Swap Source', { sourceUpdated, errorSource });
+  
+  if (errorSource) {
+    console.error("Error updating source task:", errorSource);
+    return Response.json("Error updating source task", { status: 500 });
   }
 
-  const tempOrder = sourceTask.order;
-  sourceTask.order = targetTask.order;
-  targetTask.order = tempOrder;
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-
-  return new Response(JSON.stringify({ data }), {
-    headers: { "Content-Type": "application/json" },
-    status: 200,
-  });  
+  console.log('POST Swap Updated', { sourceUpdated, targetUpdated });
+  
+  return Response.json({
+    source: sourceUpdated[0],
+    target: targetUpdated[0],
+  });
 }

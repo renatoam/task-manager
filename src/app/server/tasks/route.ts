@@ -1,86 +1,134 @@
-import path from "path";
-import fs from "fs/promises";
-import { NextRequest } from "next/server";
-import { randomUUID } from "crypto";
+import { supabase } from "features/app/shared/config/supabase";
 import { Task } from "features/app/shared/model/task";
+import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const filter = params.get('filter') ?? 'all';
-  const filePath = path.join(process.cwd(), 'tasks.json');
-  const rawData = await fs.readFile(filePath, 'utf-8');
-  const data = JSON.parse(rawData);
-  console.log({ data, filter });
 
   if (filter === 'active') {
-    const activeTasks = data.filter((task: Task) => !task.completed);
+    const { data: tasks, count: remaining } = await supabase
+      .from("tasks")
+      .select("*", { count: 'exact' })
+      .is('completed', false)
+      .overrideTypes<Task[], { merge: false }>();
+
+    console.log('GET Active', { tasks, remaining });
+
+    if (!tasks) {
+      return Response.json({
+        tasks: [],
+        remaining: 0,
+      });
+    }
+
     return Response.json({
-      tasks: activeTasks as Task[],
-      remaining: activeTasks.length,
+      tasks,
+      remaining,
     });
   } else if (filter === 'completed') {
-    const completedTasks = data.filter((task: Task) => task.completed);
+    const { data: tasks, count: remaining } = await supabase
+      .from("tasks")
+      .select("*", { count: 'exact' })
+      .is('completed', true)
+      .overrideTypes<Task[], { merge: false }>();
+
+    console.log('GET Completed', { tasks, remaining });
+
     return Response.json({
-      tasks: completedTasks as Task[],
-      remaining: completedTasks.length,
+      tasks,
+      remaining,
     });
   }
 
+  const { data: tasks, count: remaining } = await supabase
+    .from("tasks")
+    .select("*", { count: 'exact' })
+    .overrideTypes<Task[], { merge: false }>();
+  
+  console.log('GET All', { tasks, remaining });
+
   return Response.json({
-    tasks: data as Task[],
-    remaining: data.filter((task: Task) => !task.completed).length,
+    tasks,
+    remaining,
   });
 }
 
 export async function POST(request: NextRequest) {
-  const filePath = path.join(process.cwd(), 'tasks.json');
-  const rawData = await fs.readFile(filePath, 'utf-8');
-  const data = JSON.parse(rawData);
-
   const body = await request.json();
 
   if (body.clear) {
-    const activeTasks = data.filter((task: Task) => !task.completed);
-    await fs.writeFile(filePath, JSON.stringify(activeTasks, null, 2));
-    return Response.json({
-      tasks: activeTasks as Task[],
-      remaining: activeTasks.length,
-    });
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('completed', true)
+      .select('*')
+      .overrideTypes<Task[], { merge: false }>();
+    
+    console.log('POST Clear', { error });
+
+    if (error) {
+      return Response.json({ error: error.message }, { status: 500 });
+    }
+
+    return Response.json({ status: 204 });
   }
 
-  const newTask: Task = {
-    id: randomUUID(),
+  const { count, error } = await supabase
+    .from('tasks')
+    .select("*", { count: 'exact', head: true })
+
+  console.log('POST New Count', { error, count });
+
+  if (error || count === undefined || count === null) {
+    return Response.json({ error }, { status: 500 });
+  }
+
+  const remaining = count + 1
+
+  const newTask: Omit<Task, "id"> = {
     description: body.description,
     completed: false,
+    order: remaining
   };
 
-  data.push(newTask);
-  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+  const { data: tasks, error: insertError } = await supabase
+    .from('tasks')
+    .insert([newTask])
+    .select("*")
+    .overrideTypes<Task[], { merge: false }>();
+
+  console.log('POST New', { tasks, insertError, count });
+
+  if (insertError) {
+    return Response.json({ error: insertError.message }, { status: 500 });
+  }
+
   return Response.json({
-    tasks: data as Task[],
-    remaining: data.filter((task: Task) => !task.completed).length,
+    tasks,
+    remaining,
   });
 }
 
 export async function PUT(request: NextRequest) {
-  const filePath = path.join(process.cwd(), 'tasks.json');
-  const rawData = await fs.readFile(filePath, 'utf-8');
-  const data = JSON.parse(rawData);
   const body = await request.json();
   const taskId = body.id;
-  const updatedTasks = data.map((task: Task) => {
-    if (task.id === taskId) {
-      return {
-        ...task,
-        completed: !task.completed,
-      };
-    }
-    return task;
+  
+  // TODO: refactor to update the whole task instead of just the completed status
+  const { data: task, error } = await supabase
+    .from('tasks')
+    .update({ completed: !body.completed })
+    .eq('id', taskId)
+    .select("*")
+    .overrideTypes<Task[], { merge: false }>();
+  
+  console.log('PUT', { task, error });
+
+  if (error || !task) {
+    return Response.json({ error: error.message }, { status: 500 });
   }
-  );
-  await fs.writeFile(filePath, JSON.stringify(updatedTasks, null, 2));
+
   return Response.json({
-    tasks: updatedTasks as Task[],
-    remaining: updatedTasks.filter((task: Task) => !task.completed).length,
+    task,
   });
 }
