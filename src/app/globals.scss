@@ -17,16 +17,6 @@
   @include m.generate-theme-variables(v.$dark-colors);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    @include m.generate-theme-variables(v.$dark-colors);
-  }
-  
-  html {
-    color-scheme: dark;
-  }
-}
-
 * {
   box-sizing: border-box;
   padding: 0;

@@ -1,8 +1,11 @@
+import SunIcon from '../icons/sun'
+import styles from './header.module.scss'
+
 export default function Header() {
   return (
-    <header>
+    <header className={styles.header}>
       <h1>Task Manager</h1>
-      <button type="button">Theme</button>
+      <SunIcon />
     </header>
   )
 }
