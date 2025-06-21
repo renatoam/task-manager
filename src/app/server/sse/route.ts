@@ -4,6 +4,8 @@ import amqp from 'amqplib';
 import { supabase } from 'features/app/shared/config/supabase';
 import { Task } from 'features/app/shared/model/task';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const encoder = new TextEncoder();
   let consumerTag: string | undefined;
