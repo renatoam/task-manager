@@ -1,6 +1,8 @@
+import { createRoutingKey, exchange, queueConnection } from "features/app/shared/config/queue";
 import { supabase } from "features/app/shared/config/supabase";
 import { Task } from "features/app/shared/model/task";
 import { NextRequest } from "next/server";
+import { randomUUID } from "node:crypto";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -56,24 +58,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-
-  if (body.clear) {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('completed', true)
-      .select('*')
-      .overrideTypes<Task[], { merge: false }>();
-    
-    console.log('POST Clear', { error });
-
-    if (error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
-
-    return Response.json({ status: 204 });
-  }
-
   const { count, error } = await supabase
     .from('tasks')
     .select("*", { count: 'exact', head: true })
@@ -86,27 +70,19 @@ export async function POST(request: NextRequest) {
 
   const remaining = count + 1
 
-  const newTask: Omit<Task, "id"> = {
+  const newTask: Task = {
+    id: randomUUID(),
     description: body.description,
     completed: false,
     order: remaining
   };
 
-  const { data: tasks, error: insertError } = await supabase
-    .from('tasks')
-    .insert([newTask])
-    .select("*")
-    .overrideTypes<Task[], { merge: false }>();
-
-  console.log('POST New', { tasks, insertError, count });
-
-  if (insertError) {
-    return Response.json({ error: insertError.message }, { status: 500 });
-  }
+  const publishChannel = await queueConnection.createChannel();
+  const sent = publishChannel.publish(exchange, createRoutingKey, Buffer.from(JSON.stringify(newTask)));
 
   return Response.json({
-    tasks,
-    remaining,
+    published: sent,
+    task: newTask,
   });
 }
 
