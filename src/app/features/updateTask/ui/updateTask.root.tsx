@@ -25,7 +25,6 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
     transform,
     transition,
     isDragging,
-    isOver,
   } = useSortable({
     id: order,
     data: {
@@ -42,12 +41,13 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     transition,
     opacity: isDragging ? "0.4" : "1",
-    borderTop: isOver ? "2px solid var(--color-primary)" : "none",
+    borderTop: isDragging ? "2px solid var(--color-primary)" : "none",
   } : undefined;
   
   const toggleTaskCompletion = () => {
-    setCurrentTask({ ...currentTask, completed: !currentTask.completed });
-    mutate(currentTask);
+    const updatedTask = { ...currentTask, completed: !currentTask.completed };
+    setCurrentTask(updatedTask);
+    mutate(updatedTask);
   }
 
   const updateDescription = () => {
