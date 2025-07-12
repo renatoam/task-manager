@@ -1,9 +1,37 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryClient } from "features/app/shared/config/query";
 import { Task } from "features/app/shared/model/task";
 
 interface NewTask {
   description: string;
   completed?: boolean;
+}
+
+export const syncOfflineTasks = async () => {
+  if (!window || !window?.navigator.onLine) return
+
+  const storage = localStorage.getItem('offlineTasks') ?? '[]'
+  const queue = JSON.parse(storage) as Task[]
+  const stillPending = []
+
+  for (const task of queue) {
+    try {
+      await createTask(task)
+    } catch {
+      stillPending.push(task)
+    }
+  }
+
+  localStorage.setItem('offlineTasks', JSON.stringify(stillPending))
+  queryClient.invalidateQueries({ queryKey: ['tasks']})
+}
+
+export const createOfflineTask = async (task: NewTask) => {
+  const storage = localStorage.getItem('offlineTasks') ?? '[]'
+  const queue = JSON.parse(storage) as Partial<Task>[]
+  queue.push(task)
+  localStorage.setItem('offlineTasks', JSON.stringify(queue))
+  return false
 }
 
 export const createTask = async (task: NewTask) => {
@@ -27,12 +55,21 @@ export const useCreateTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createTask,
-    onMutate: (newTask: NewTask) => {
+    mutationFn: (data) => {
+      const isOnline = window.navigator.onLine
+
+      if (!isOnline) {
+        return createOfflineTask(data.newTask)
+      }
+
+      return createTask(data.newTask)
+    },
+    onMutate: (variables: { newTask: NewTask, filter: string }) => {
+      const { newTask, filter } = variables
       // Cancel any ongoing queries to prevent stale data
-      queryClient.cancelQueries({ queryKey: ['tasks'] });
+      // queryClient.cancelQueries({ queryKey: ['tasks'] });
       // Get the current tasks from the cache
-      const previousTasks = queryClient.getQueryData<Task[]>(['tasks']) ?? [];
+      const previousTasks = queryClient.getQueryData<Task[]>(['tasks', filter]) ?? [];
       // Create a temporary task ID for optimistic UI updates
       // This ID will be replaced with the actual ID from the server response
       // This is useful for optimistic updates to the UI
@@ -43,26 +80,28 @@ export const useCreateTask = () => {
         order: previousTasks.length + 1,
         completed: newTask.completed ?? false,
       }
+
+      console.log('onMutate', { previousTasks })
       
       const optimisticUpdatedTasks = [...(previousTasks ?? []), optimisticTask];
       // Optimistically update the cache      
-      queryClient.setQueryData(['tasks'], optimisticUpdatedTasks);
+      queryClient.setQueryData(['tasks', filter], optimisticUpdatedTasks);
       return {
         previousTasks,
         optimisticTask,
       };
     },
-    onError: (error, newTask, context) => {
-      console.error({ error, newTask})
+    onError: (error, variables, context) => {
+      console.error({ error })
       // If the mutation fails, roll back to the previous tasks
       if (context?.previousTasks) {
-        queryClient.setQueryData(['tasks'], context.previousTasks);
+        queryClient.setQueryData(['tasks', variables.filter], [...context.previousTasks, context.optimisticTask]);
       }
     },
     onSuccess: (data: { task: Task, published: boolean }) => {
       console.log('Task created successfully', data);
       // Invalidate the tasks query to refetch the latest data
-      // queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
     },
   });
 }

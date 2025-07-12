@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useSwapTasks } from '../api/swapTasks';
 import { useUpdateTask } from '../api/updateTask';
 import styles from './updateTask.module.scss';
+import { GripVertical } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -66,6 +67,7 @@ export default function UpdateTask(props: Readonly<{ task: Task }> ) {
     >
       {isPending ? <span className={styles.task_loading}></span> : (
         <>
+          <GripVertical />
           <input
             id={`taskCheck-${id}`}
             type="checkbox"

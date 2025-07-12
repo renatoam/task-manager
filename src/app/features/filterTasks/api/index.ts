@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const clearCompletedTasks = async () => {
-  const response = await fetch('/server/tasks', {
+  const response = await fetch('/server/clear', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ clear: true }),
   });
 
   if (!response.ok) {

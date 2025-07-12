@@ -1,9 +1,12 @@
 import { KeyboardEvent } from 'react';
 import { useCreateTask } from '../api';
 import styles from './createTaskInput.module.scss';
+import { useSearchParams } from 'next/navigation';
 
 export default function CreateTaskInput() {
   const { mutate } = useCreateTask();
+  const params = useSearchParams();
+  const filter = params.get('filter') ?? "all";
 
   const createNewTask = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key !== "Enter") return;
@@ -12,8 +15,11 @@ export default function CreateTaskInput() {
     const value = target.value.trim();
 
     mutate({
-      description: value,
-      completed: false,
+      newTask: {
+        description: value,
+        completed: false,
+      },
+      filter
     })
 
     target.value = ""; // Clear input after adding task

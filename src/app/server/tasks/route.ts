@@ -1,4 +1,3 @@
-import { createRoutingKey, exchange, queueConnection } from "features/app/shared/config/queue";
 import { supabase } from "features/app/shared/config/supabase";
 import { Task } from "features/app/shared/model/task";
 import { NextRequest } from "next/server";
@@ -77,11 +76,27 @@ export async function POST(request: NextRequest) {
     order: remaining
   };
 
-  const publishChannel = await queueConnection.createChannel();
-  const sent = publishChannel.publish(exchange, createRoutingKey, Buffer.from(JSON.stringify(newTask)));
+  // const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
+  const relayURL = 'http://localhost:4000'
+  const response = await fetch(`${relayURL}/producer`, {
+    method: 'POST',
+    body: JSON.stringify(newTask),
+    // headers: {
+    //   'Content-Type': 'application/json'
+    // }
+  })
+
+  if (!response.ok) {
+    return Response.json({
+      published: false,
+      task: newTask,
+    }, { status: 500 });
+  }
+
+  const data = (await response.json()) as { sent: boolean, task: Task }
 
   return Response.json({
-    published: sent,
+    published: data.sent,
     task: newTask,
   });
 }

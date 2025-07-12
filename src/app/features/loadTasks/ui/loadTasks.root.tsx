@@ -1,5 +1,7 @@
 "use client";
 import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { syncOfflineTasks } from '../../createTask/api';
 import UpdateTask from '../../updateTask/ui/updateTask.root';
 import { useLoadTasks } from '../api';
 import styles from './loadTasks.module.scss';
@@ -10,6 +12,10 @@ export default function TasksList() {
   const params = useSearchParams();
   const filter = params.get('filter') as TaskFilter || "all";
   const { tasks, isLoading, isError } = useLoadTasks(filter)
+
+  useEffect(() => {
+    syncOfflineTasks()
+  }, [])
 
   if (isLoading) {
     return <p className={styles.loading}>Loading tasks...</p>;
