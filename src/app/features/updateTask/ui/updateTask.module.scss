@@ -5,6 +5,19 @@
   padding-inline: 2rem;
   gap: 1rem;
   cursor: grab;
+  
+  // Transitions for dnd-kit
+  transition: transform 200ms ease, opacity 200ms ease;
+  will-change: transform;
+  
+  &:active {
+    cursor: grabbing;
+  }
+
+  // Style for the overlay during the drag
+  &.dragging {
+    opacity: 0.5;
+  }
 
   &_over {
     box-shadow: inset 0 0 4px 0px var(--border);

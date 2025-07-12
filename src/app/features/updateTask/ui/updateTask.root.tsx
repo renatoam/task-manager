@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { useSwapTasks } from '../api/swapTasks';
 import { useUpdateTask } from '../api/updateTask';
 import styles from './updateTask.module.scss';
 import { GripVertical } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
 
 interface Task {
   id: string;
@@ -11,59 +10,43 @@ interface Task {
   order: number;
 }
 
-let draggingItem: Task | undefined = undefined
-
 export default function UpdateTask(props: Readonly<{ task: Task }> ) {
   const { id, description, completed, order } = props.task
   const { mutate, isPending } = useUpdateTask(props.task);
-  const { mutate: swapMutate } = useSwapTasks()
-  const [over, setOver] = useState<boolean | null>(null);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({
+    id: order,
+    data: {
+      id,
+      order,
+    },
+  });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transition,
+    opacity: isDragging ? "0.4" : "1",
+    borderTop: isOver ? "2px solid var(--color-primary)" : "none",
+  } : undefined;
   
   const toggleTaskCompletion = () => mutate()
-
-  const swapTasks = () => {
-    if (!draggingItem || draggingItem.order === order) return;
-    
-    const swap = {
-      source: draggingItem,
-      target: props.task,
-    }
-
-    swapMutate(swap)
-
-    draggingItem = undefined; // Reset dragging item after swap
-    setOver(false);
-  }
 
   return (
     <li
       id={id}
-      className={`${styles.task} ${over ? styles.task_over : ''}`}
-      key={id}
-      draggable={true}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move';
-        draggingItem = props.task;
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setOver(true);
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        setOver(false);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        console.log('Drop event:', {
-          id,
-          order,
-          target: e.target,
-          external: draggingItem,
-        });
-        swapTasks()
-      }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={styles.task}
     >
       {isPending ? <span className={styles.task_loading}></span> : (
         <>
