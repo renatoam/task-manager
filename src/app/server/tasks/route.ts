@@ -105,19 +105,18 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const taskId = body.id;
   
-  // TODO: refactor to update the whole task instead of just the completed status
   const { data: task, error } = await supabase
     .from('tasks')
-    .update({ completed: !body.completed })
+    .update(body)
     .eq('id', taskId)
     .select("*")
     .overrideTypes<Task[], { merge: false }>();
   
-  console.log('PUT', { task, error });
-
   if (error || !task) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  console.log('PUT', { task, error });
 
   return Response.json({
     task,

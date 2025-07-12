@@ -1,7 +1,8 @@
 import { useUpdateTask } from '../api/updateTask';
 import styles from './updateTask.module.scss';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, PenBoxIcon } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
+import { useEffect, useRef, useState } from 'react';
 
 interface Task {
   id: string;
@@ -10,9 +11,12 @@ interface Task {
   order: number;
 }
 
-export default function UpdateTask(props: Readonly<{ task: Task }> ) {
-  const { id, description, completed, order } = props.task
-  const { mutate, isPending } = useUpdateTask(props.task);
+export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boolean }> ) {
+  const [currentTask, setCurrentTask] = useState<Task>(props.task);
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { id, description, completed, order } = currentTask;
+  const { mutate, isPending } = useUpdateTask();
 
   const {
     attributes,
@@ -30,6 +34,10 @@ export default function UpdateTask(props: Readonly<{ task: Task }> ) {
     },
   });
 
+  useEffect(() => {
+    setCurrentTask(props.task);
+  }, [props.task]);
+
   const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     transition,
@@ -37,7 +45,41 @@ export default function UpdateTask(props: Readonly<{ task: Task }> ) {
     borderTop: isOver ? "2px solid var(--color-primary)" : "none",
   } : undefined;
   
-  const toggleTaskCompletion = () => mutate()
+  const toggleTaskCompletion = () => {
+    setCurrentTask({ ...currentTask, completed: !currentTask.completed });
+    mutate(currentTask);
+  }
+
+  const updateDescription = () => {
+    const updatedTask = { ...currentTask, description: inputRef.current?.value || "" };
+    setCurrentTask(updatedTask);
+    setIsEditing(false);
+
+    mutate(updatedTask);
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const updatedTask = { ...currentTask, description: inputRef.current?.value || "" };
+      setCurrentTask(updatedTask);
+      setIsEditing(false);
+
+      mutate(updatedTask);
+    }
+  }
+
+  if (props.overlay) {
+    return (
+      <li
+        id={id}
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={styles.task}
+      />
+    )
+  }
 
   return (
     <li
@@ -63,7 +105,18 @@ export default function UpdateTask(props: Readonly<{ task: Task }> ) {
           </label>
         </>
       )}
-      <p className={styles.task_description}>{description}</p>
+      <input
+        type="text"
+        defaultValue={description}
+        className={`${styles.task_description} ${isEditing ? styles.editing : ''}`}
+        onBlur={updateDescription}
+        onKeyDown={handleKeyDown}
+        disabled={isPending || !isEditing}
+        ref={inputRef}
+      />
+      <button onClick={() => setIsEditing(!isEditing)} className={styles.task_edit}>
+        <PenBoxIcon />
+      </button>
     </li>
   )
 }

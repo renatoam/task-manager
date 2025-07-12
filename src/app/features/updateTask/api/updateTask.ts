@@ -13,12 +13,7 @@ export const updateTask = async (task: UpdatedTask) => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      id: task.id,
-      order: task.order,
-      description: task.description,
-      completed: task.completed,
-    }),
+    body: JSON.stringify(task),
   });
 
   if (!response.ok) {
@@ -29,11 +24,11 @@ export const updateTask = async (task: UpdatedTask) => {
   return data;
 }
 
-export const useUpdateTask = (task: UpdatedTask) => {
+export const useUpdateTask = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () => updateTask(task),
+    mutationFn: (task: UpdatedTask) => updateTask(task),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       console.log("Task updated successfully:", data);

@@ -9,7 +9,6 @@ import {
   DndContext,
   DragEndEvent,
   DragStartEvent,
-  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -21,7 +20,7 @@ import {
   restrictToWindowEdges
 } from '@dnd-kit/modifiers';
 import Container from './fragments/container';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Task } from 'features/app/shared/model/task';
 import { useReorderTasks } from '../../updateTask/api/reorderTasks';
 
@@ -41,9 +40,6 @@ export default function TasksList() {
       activationConstraint: {
         distance: 8,
       },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
@@ -119,7 +115,7 @@ export default function TasksList() {
         </Container>
       </SortableContext>
       <DragOverlay>
-        {activeTask ? <UpdateTask task={activeTask} /> : null}
+        {activeTask ? <UpdateTask task={activeTask} overlay /> : null}
       </DragOverlay>
     </DndContext>
   )
