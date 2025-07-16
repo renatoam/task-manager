@@ -67,7 +67,7 @@ export const useCreateTask = () => {
     onMutate: (variables: { newTask: NewTask, filter: string }) => {
       const { newTask, filter } = variables
       // Cancel any ongoing queries to prevent stale data
-      // queryClient.cancelQueries({ queryKey: ['tasks'] });
+      queryClient.cancelQueries({ queryKey: ['tasks', filter] });
       // Get the current tasks from the cache
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks', filter]) ?? [];
       // Create a temporary task ID for optimistic UI updates
@@ -81,7 +81,7 @@ export const useCreateTask = () => {
         completed: newTask.completed ?? false,
       }
 
-      console.log('onMutate', { previousTasks })
+      console.log('onMutate', { previousTasks, optimisticTask })
       
       const optimisticUpdatedTasks = [...(previousTasks ?? []), optimisticTask];
       // Optimistically update the cache      
@@ -98,10 +98,10 @@ export const useCreateTask = () => {
         queryClient.setQueryData(['tasks', variables.filter], [...context.previousTasks, context.optimisticTask]);
       }
     },
-    onSuccess: (data: { task: Task, published: boolean }) => {
-      console.log('Task created successfully', data);
+    onSuccess: (data: { task: Task, published: boolean }, variables) => {
+      console.log('Task created successfully', data, variables);
       // Invalidate the tasks query to refetch the latest data
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', variables.filter] });
     },
   });
 }

@@ -1,44 +1,44 @@
 "use client";
-import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { syncOfflineTasks } from '../../createTask/api';
-import UpdateTask from '../../updateTask/ui/updateTask.root';
-import { useLoadTasks } from '../api';
-import styles from './loadTasks.module.scss';
 import {
+  closestCenter,
   DndContext,
   DragEndEvent,
+  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
-  useSensors,
-  closestCenter,
-  DragOverlay
+  useSensors
 } from '@dnd-kit/core';
 import {
   restrictToVerticalAxis,
   restrictToWindowEdges
 } from '@dnd-kit/modifiers';
-import Container from './fragments/container';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useQueryClient } from '@tanstack/react-query';
 import { Task } from 'features/app/shared/model/task';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { syncOfflineTasks } from '../../createTask/api';
 import { useReorderTasks } from '../../updateTask/api/reorderTasks';
+import UpdateTask from '../../updateTask/ui/updateTask.root';
+import { useLoadTasks } from '../api';
+import Container from './fragments/container';
+import styles from './loadTasks.module.scss';
 
 type TaskFilter = "all" | "active" | "completed";
 
 export default function TasksList() {
   const params = useSearchParams();
+  const queryClient = useQueryClient();
   const filter = params.get('filter') as TaskFilter || "all";
   const { tasks, isLoading, isError } = useLoadTasks(filter)
-  const [tasksList, setTasksList] = useState<Task[]>(tasks || []);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const tasksRef = useRef<Task[]>(null);
-  const { mutate: reorderMutate } = useReorderTasks()
+  const { mutate: reorderMutate } = useReorderTasks(filter)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 1,
       },
     })
   );
@@ -46,7 +46,7 @@ export default function TasksList() {
   const onDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const activeId = Number(active.id);
-    const activeTask = tasksList.find((task) => task.order === activeId);
+    const activeTask = tasks.find((task) => task.order === activeId);
     setActiveTask(activeTask || null);
   };
 
@@ -61,29 +61,49 @@ export default function TasksList() {
 
     if (activeId === overId) return;
 
-    const activeTask = tasksList.find((task) => task.order === activeId);
-    const overTask = tasksList.find((task) => task.order === overId);
+    const activeTask = tasks.find((task) => task.order === activeId);
+    const overTask = tasks.find((task) => task.order === overId);
 
     if (!activeTask || !overTask) return;
 
-    const activeIndex = tasksList.findIndex((task) => task.order === activeId);
-    const overIndex = tasksList.findIndex((task) => task.order === overId);
-    const newTaskList = arrayMove(tasksList, activeIndex, overIndex);
+    const activeIndex = tasks.findIndex((task) => task.order === activeId);
+    const overIndex = tasks.findIndex((task) => task.order === overId);
+    const newTaskList = arrayMove(tasks, activeIndex, overIndex);
+    const newReorderedTasks = newTaskList.map((task) => {
+      if (task.order === activeId) {
+        return { ...task, order: overId };
+      }
+      if (task.order === overId) {
+        return { ...task, order: activeId };
+      }
+      return task;
+    });
     
-    setTasksList(newTaskList);
-    reorderMutate(newTaskList)
+    reorderMutate(newReorderedTasks)
   }
-
-  useEffect(() => {
-    if (tasks.length > 0 && (!tasksRef.current || tasksRef.current.length === 0)) {
-      setTasksList(tasks);
-      tasksRef.current = tasks;
-    }
-  }, [tasks])
 
   useEffect(() => {
     syncOfflineTasks()
   }, [])
+
+  useEffect(() => {
+    const source = new EventSource('/server/sse');
+
+    source.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('SSE Message:', data);
+      queryClient.invalidateQueries({ queryKey: ['tasks', filter] });
+    };
+
+    source.onerror = (error) => {
+      console.error('SSE Error:', error);
+      source.close();
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [filter, queryClient]);
 
   if (isLoading) {
     return <p className={styles.loading}>Loading tasks...</p>;
@@ -106,12 +126,12 @@ export default function TasksList() {
       modifiers={[restrictToVerticalAxis, restrictToWindowEdges]}
     >
       <SortableContext
-        items={tasksList.map(task => task.order)}
+        items={tasks.map(task => task.order)}
         strategy={verticalListSortingStrategy}
       >
         <Container>
-          {tasksList.length === 0 && (<li className={styles.empty}>No {filter} tasks available.</li>)}
-          {tasksList.map((task) => <UpdateTask key={task.id} task={task} />)}
+          {tasks.length === 0 && (<li className={styles.empty}>No {filter} tasks available.</li>)}
+          {tasks.map((task) => <UpdateTask key={task.id} task={task} />)}
         </Container>
       </SortableContext>
       <DragOverlay>

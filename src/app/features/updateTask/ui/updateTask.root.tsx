@@ -68,7 +68,7 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
     }
   }
 
-  if (props.overlay) {
+  if (isEditing && props.overlay) {
     return (
       <li
         id={id}
@@ -92,7 +92,7 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
     >
       {isPending ? <span className={styles.task_loading}></span> : (
         <>
-          <GripVertical />
+          <GripVertical className={styles.task_grip} />
           <input
             id={`taskCheck-${id}`}
             type="checkbox"

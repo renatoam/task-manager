@@ -57,17 +57,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { count, error } = await supabase
+  const { count: remaining, error } = await supabase
     .from('tasks')
     .select("*", { count: 'exact', head: true })
 
-  console.log('POST New Count', { error, count });
+  console.log('POST New Count', { error, remaining });
 
-  if (error || count === undefined || count === null) {
+  if (error || remaining === undefined || remaining === null) {
     return Response.json({ error }, { status: 500 });
   }
-
-  const remaining = count + 1
 
   const newTask: Task = {
     id: randomUUID(),
@@ -81,9 +79,9 @@ export async function POST(request: NextRequest) {
   const response = await fetch(`${relayURL}/producer`, {
     method: 'POST',
     body: JSON.stringify(newTask),
-    // headers: {
-    //   'Content-Type': 'application/json'
-    // }
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
 
   if (!response.ok) {

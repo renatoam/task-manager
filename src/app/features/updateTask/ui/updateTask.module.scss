@@ -87,6 +87,15 @@
     }
   }
 
+  &_grip {
+    color: var(--text-muted);
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
   &_edit {
     cursor: pointer;
     background-color: transparent;

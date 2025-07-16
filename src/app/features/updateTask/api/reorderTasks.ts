@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+type TaskFilter = "all" | "active" | "completed";
+
 interface OrderTask {
   id: string;
   order: number;  
@@ -22,13 +24,13 @@ export const reorderTasks = async (tasks: OrderTask[]) => {
   return data;
 }
 
-export const useReorderTasks = () => {
+export const useReorderTasks = (filter: TaskFilter) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (tasks: OrderTask[]) => reorderTasks(tasks),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", filter] });
       console.log("Tasks reordered successfully:", data);
       return data;
     },
