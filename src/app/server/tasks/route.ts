@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
     order: remaining
   };
 
-  // const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
-  const relayURL = 'http://localhost:4000'
+  const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
+  // const relayURL = 'http://localhost:4000'
   const response = await fetch(`${relayURL}/producer`, {
     method: 'POST',
     body: JSON.stringify(newTask),
