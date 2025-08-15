@@ -90,7 +90,12 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
       {...listeners}
       className={styles.task}
     >
-      {isPending ? <span className={styles.task_loading}></span> : (
+      {isPending ? (
+        <>
+          <GripVertical className={styles.task_grip} />
+          <span className={styles.task_loading}></span>
+        </>
+      ) : (
         <>
           <GripVertical className={styles.task_grip} />
           <input

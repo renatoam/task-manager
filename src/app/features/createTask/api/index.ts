@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "features/app/shared/config/query";
+import { useAuth } from "features/app/shared/contexts/auth.context";
 import { Task } from "features/app/shared/model/task";
 
 interface NewTask {
@@ -29,7 +30,13 @@ export const syncOfflineTasks = async () => {
 export const createOfflineTask = async (task: NewTask) => {
   const storage = localStorage.getItem('offlineTasks') ?? '[]'
   const queue = JSON.parse(storage) as Partial<Task>[]
-  queue.push(task)
+  const newTask = {
+    ...task,
+    id: `temp-${queue.length + 1}`,
+    order: queue.length + 1,
+    completed: task.completed ?? false,
+  }
+  queue.push(newTask)
   localStorage.setItem('offlineTasks', JSON.stringify(queue))
   return false
 }
@@ -53,12 +60,13 @@ export const createTask = async (task: NewTask) => {
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   return useMutation({
     mutationFn: (data) => {
       const isOnline = window.navigator.onLine
 
-      if (!isOnline) {
+      if (!isOnline || !isAuthenticated) {
         return createOfflineTask(data.newTask)
       }
 
