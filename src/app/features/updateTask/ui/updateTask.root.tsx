@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useSwapTasks } from '../api/swapTasks';
 import { useUpdateTask } from '../api/updateTask';
 import styles from './updateTask.module.scss';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, PenBoxIcon } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { useEffect, useRef, useState } from 'react';
 
 interface Task {
   id: string;
@@ -11,63 +11,93 @@ interface Task {
   order: number;
 }
 
-let draggingItem: Task | undefined = undefined
+export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boolean }> ) {
+  const [currentTask, setCurrentTask] = useState<Task>(props.task);
+  const [isEditing, setIsEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { id, description, completed, order } = currentTask;
+  const { mutate, isPending } = useUpdateTask();
 
-export default function UpdateTask(props: Readonly<{ task: Task }> ) {
-  const { id, description, completed, order } = props.task
-  const { mutate, isPending } = useUpdateTask(props.task);
-  const { mutate: swapMutate } = useSwapTasks()
-  const [over, setOver] = useState<boolean | null>(null);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: order,
+    data: {
+      id,
+      order,
+    },
+  });
+
+  useEffect(() => {
+    setCurrentTask(props.task);
+  }, [props.task]);
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    transition,
+    opacity: isDragging ? "0.4" : "1",
+    borderTop: isDragging ? "2px solid var(--color-primary)" : "none",
+  } : undefined;
   
-  const toggleTaskCompletion = () => mutate()
+  const toggleTaskCompletion = () => {
+    const updatedTask = { ...currentTask, completed: !currentTask.completed };
+    setCurrentTask(updatedTask);
+    mutate(updatedTask);
+  }
 
-  const swapTasks = () => {
-    if (!draggingItem || draggingItem.order === order) return;
-    
-    const swap = {
-      source: draggingItem,
-      target: props.task,
+  const updateDescription = () => {
+    const updatedTask = { ...currentTask, description: inputRef.current?.value || "" };
+    setCurrentTask(updatedTask);
+    setIsEditing(false);
+
+    mutate(updatedTask);
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const updatedTask = { ...currentTask, description: inputRef.current?.value || "" };
+      setCurrentTask(updatedTask);
+      setIsEditing(false);
+
+      mutate(updatedTask);
     }
+  }
 
-    swapMutate(swap)
-
-    draggingItem = undefined; // Reset dragging item after swap
-    setOver(false);
+  if (isEditing && props.overlay) {
+    return (
+      <li
+        id={id}
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className={styles.task}
+      />
+    )
   }
 
   return (
     <li
       id={id}
-      className={`${styles.task} ${over ? styles.task_over : ''}`}
-      key={id}
-      draggable={true}
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = 'move';
-        draggingItem = props.task;
-      }}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        setOver(true);
-      }}
-      onDragLeave={(e) => {
-        e.preventDefault();
-        setOver(false);
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        console.log('Drop event:', {
-          id,
-          order,
-          target: e.target,
-          external: draggingItem,
-        });
-        swapTasks()
-      }}
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={styles.task}
     >
-      {isPending ? <span className={styles.task_loading}></span> : (
+      {isPending ? (
         <>
-          <GripVertical />
+          <GripVertical className={styles.task_grip} />
+          <span className={styles.task_loading}></span>
+        </>
+      ) : (
+        <>
+          <GripVertical className={styles.task_grip} />
           <input
             id={`taskCheck-${id}`}
             type="checkbox"
@@ -80,7 +110,18 @@ export default function UpdateTask(props: Readonly<{ task: Task }> ) {
           </label>
         </>
       )}
-      <p className={styles.task_description}>{description}</p>
+      <input
+        type="text"
+        defaultValue={description}
+        className={`${styles.task_description} ${isEditing ? styles.editing : ''}`}
+        onBlur={updateDescription}
+        onKeyDown={handleKeyDown}
+        disabled={isPending || !isEditing}
+        ref={inputRef}
+      />
+      <button onClick={() => setIsEditing(!isEditing)} className={styles.task_edit}>
+        <PenBoxIcon />
+      </button>
     </li>
   )
 }

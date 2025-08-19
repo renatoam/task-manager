@@ -57,17 +57,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { count, error } = await supabase
+  const { count: remaining, error } = await supabase
     .from('tasks')
     .select("*", { count: 'exact', head: true })
 
-  console.log('POST New Count', { error, count });
+  console.log('POST New Count', { error, remaining });
 
-  if (error || count === undefined || count === null) {
+  if (error || remaining === undefined || remaining === null) {
     return Response.json({ error }, { status: 500 });
   }
-
-  const remaining = count + 1
 
   const newTask: Task = {
     id: randomUUID(),
@@ -76,14 +74,14 @@ export async function POST(request: NextRequest) {
     order: remaining
   };
 
-  // const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
-  const relayURL = 'http://localhost:4000'
+  const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
+  // const relayURL = 'http://localhost:4000'
   const response = await fetch(`${relayURL}/producer`, {
     method: 'POST',
     body: JSON.stringify(newTask),
-    // headers: {
-    //   'Content-Type': 'application/json'
-    // }
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
 
   if (!response.ok) {
@@ -105,19 +103,18 @@ export async function PUT(request: NextRequest) {
   const body = await request.json();
   const taskId = body.id;
   
-  // TODO: refactor to update the whole task instead of just the completed status
   const { data: task, error } = await supabase
     .from('tasks')
-    .update({ completed: !body.completed })
+    .update(body)
     .eq('id', taskId)
     .select("*")
     .overrideTypes<Task[], { merge: false }>();
   
-  console.log('PUT', { task, error });
-
   if (error || !task) {
     return Response.json({ error: error.message }, { status: 500 });
   }
+
+  console.log('PUT', { task, error });
 
   return Response.json({
     task,

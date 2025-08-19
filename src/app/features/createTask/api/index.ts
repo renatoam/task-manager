@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "features/app/shared/config/query";
+import { useAuth } from "features/app/shared/contexts/auth.context";
 import { Task } from "features/app/shared/model/task";
 
 interface NewTask {
@@ -29,7 +30,13 @@ export const syncOfflineTasks = async () => {
 export const createOfflineTask = async (task: NewTask) => {
   const storage = localStorage.getItem('offlineTasks') ?? '[]'
   const queue = JSON.parse(storage) as Partial<Task>[]
-  queue.push(task)
+  const newTask = {
+    ...task,
+    id: `temp-${queue.length + 1}`,
+    order: queue.length + 1,
+    completed: task.completed ?? false,
+  }
+  queue.push(newTask)
   localStorage.setItem('offlineTasks', JSON.stringify(queue))
   return false
 }
@@ -53,12 +60,13 @@ export const createTask = async (task: NewTask) => {
 
 export const useCreateTask = () => {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
   return useMutation({
     mutationFn: (data) => {
       const isOnline = window.navigator.onLine
 
-      if (!isOnline) {
+      if (!isOnline || !isAuthenticated) {
         return createOfflineTask(data.newTask)
       }
 
@@ -67,7 +75,7 @@ export const useCreateTask = () => {
     onMutate: (variables: { newTask: NewTask, filter: string }) => {
       const { newTask, filter } = variables
       // Cancel any ongoing queries to prevent stale data
-      // queryClient.cancelQueries({ queryKey: ['tasks'] });
+      queryClient.cancelQueries({ queryKey: ['tasks', filter] });
       // Get the current tasks from the cache
       const previousTasks = queryClient.getQueryData<Task[]>(['tasks', filter]) ?? [];
       // Create a temporary task ID for optimistic UI updates
@@ -81,7 +89,7 @@ export const useCreateTask = () => {
         completed: newTask.completed ?? false,
       }
 
-      console.log('onMutate', { previousTasks })
+      console.log('onMutate', { previousTasks, optimisticTask })
       
       const optimisticUpdatedTasks = [...(previousTasks ?? []), optimisticTask];
       // Optimistically update the cache      
@@ -98,10 +106,10 @@ export const useCreateTask = () => {
         queryClient.setQueryData(['tasks', variables.filter], [...context.previousTasks, context.optimisticTask]);
       }
     },
-    onSuccess: (data: { task: Task, published: boolean }) => {
-      console.log('Task created successfully', data);
+    onSuccess: (data: { task: Task, published: boolean }, variables) => {
+      console.log('Task created successfully', data, variables);
       // Invalidate the tasks query to refetch the latest data
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', variables.filter] });
     },
   });
 }
