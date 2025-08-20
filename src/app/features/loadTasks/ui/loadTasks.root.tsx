@@ -91,12 +91,12 @@ export default function TasksList() {
 
     source.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('SSE Message:', data);
+      console.log('[SSE] Task successfully created:', data);
       queryClient.invalidateQueries({ queryKey: ['tasks', filter] });
     };
 
     source.onerror = (error) => {
-      console.error('SSE Error:', error);
+      console.error('[SSE] Error:', error);
       source.close();
     };
 

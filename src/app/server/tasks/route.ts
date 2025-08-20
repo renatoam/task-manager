@@ -74,29 +74,36 @@ export async function POST(request: NextRequest) {
     order: remaining
   };
 
-  const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
-  // const relayURL = 'http://localhost:4000'
-  const response = await fetch(`${relayURL}/producer`, {
-    method: 'POST',
-    body: JSON.stringify(newTask),
-    headers: {
-      'Content-Type': 'application/json'
+  try {
+    const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
+    // const relayURL = 'http://localhost:4000'
+    const response = await fetch(`${relayURL}/producer`, {
+      method: 'POST',
+      body: JSON.stringify(newTask),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      return Response.json({
+        published: false,
+        task: newTask,
+      }, { status: 500 });
     }
-  })
 
-  if (!response.ok) {
+    const data = (await response.json()) as { sent: boolean, task: Task }
+
+    console.log('Producer | message published: ', data.sent);
+
     return Response.json({
-      published: false,
+      published: data.sent,
       task: newTask,
-    }, { status: 500 });
+    });
+  } catch (error) {
+    console.error('Error publishing task:', error);
+    return Response.json({ published: false, task: newTask }, { status: 500 });
   }
-
-  const data = (await response.json()) as { sent: boolean, task: Task }
-
-  return Response.json({
-    published: data.sent,
-    task: newTask,
-  });
 }
 
 export async function PUT(request: NextRequest) {
