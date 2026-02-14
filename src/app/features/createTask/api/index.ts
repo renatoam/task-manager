@@ -107,7 +107,7 @@ export const useCreateTask = () => {
       }
     },
     onSuccess: (data: { task: Task, published: boolean }, variables) => {
-      console.log('Task created successfully', data, variables);
+      console.log('Task published successfully', data, variables);
       // Invalidate the tasks query to refetch the latest data
       queryClient.invalidateQueries({ queryKey: ['tasks', variables.filter] });
     },
