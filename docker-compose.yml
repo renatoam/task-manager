@@ -1,0 +1,64 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - RABBIT_URL=${RABBIT_URL}
+      - RELAY_URL=${RELAY_URL}
+      - TITLE="Docker Compose"
+    volumes:
+      - ./volume:/app/data
+    env_file:
+      - .env.development
+    depends_on:
+      - relay
+      - consumer
+
+  relay:
+    build:
+      context: ../event-driven/relay
+      dockerfile: Dockerfile
+    ports:
+      - 4000:4000
+    environment:
+      - RABBIT_URL=${RABBIT_URL}
+    depends_on:
+      - rabbitmq
+    env_file:
+      - .env.development
+
+  consumer:
+    build:
+      context: ../event-driven/consumer
+      dockerfile: Dockerfile
+    ports:
+      - 4001:4001
+    environment:
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - RABBIT_URL=${RABBIT_URL}
+    depends_on:
+      - rabbitmq
+    env_file:
+      - .env.development
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  rabbitmq_data:

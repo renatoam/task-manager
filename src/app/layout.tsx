@@ -9,7 +9,7 @@ const josefinSans = Josefin_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Task Manager",
+  title: process.env.TITLE ?? "Task Manager",
   description: "A simple task management app. Track your tasks easily! Todo list, task manager, productivity app.",
 };
 

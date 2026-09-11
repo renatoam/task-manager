@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# How to run
 
-## Getting Started
+## To run locally with hot reload, run:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```zsh
+docker compose up rabbit relay consumer [-d]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```zsh
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## To run locally to use the containers, run:
 
-## Learn More
+```zsh
+docker compose up [-d] [--build]
+```
 
-To learn more about Next.js, take a look at the following resources:
+## To use local Kubernetes cluster, run:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```zsh
+minikube start --driver qemu --network socket_vmnet
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Then use the internal minikube's docker:
 
-## Deploy on Vercel
+```zsh
+eval $(minikube docker-env) && docker images
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+And build the images inside the cluster:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+docker build -t [image] [path of dockerfile]
+```
+
+Now, create a deployment for each image:
+
+```
+kubectl [or `minikube kubectl --` if alias is not set] create deployment --image=[image]
+```
+
+Then, expose the deployment (create a service) for each image:
+
+```
+kubectl expose deployment [image] --type=NodePort --port=[port set in the image]
+```
+
+In another terminal, run:
+
+```
+minikube service app [which is likely the main dply/svc] --url
+# use the given url to access the app in the browser
+```

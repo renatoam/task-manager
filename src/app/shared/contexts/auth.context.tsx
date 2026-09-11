@@ -15,7 +15,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const value = useMemo(() => ({
     isAuthenticated,
