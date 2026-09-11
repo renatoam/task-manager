@@ -3,6 +3,8 @@ import styles from './updateTask.module.scss';
 import { GripVertical, PenBoxIcon } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { useEffect, useRef, useState } from 'react';
+import { DeleteButton } from '../../deleteTask/ui';
+import { useDeleteTask } from '../../deleteTask/api';
 
 interface Task {
   id: string;
@@ -17,6 +19,7 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
   const inputRef = useRef<HTMLInputElement>(null);
   const { id, description, completed, order } = currentTask;
   const { mutate, isPending } = useUpdateTask();
+  const { mutate: deleteTask, isPending: isDeletePending } = useDeleteTask()
 
   const {
     attributes,
@@ -66,6 +69,10 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
 
       mutate(updatedTask);
     }
+  }
+
+  const handleDeleteTask = () => {
+    deleteTask(id)
   }
 
   if (isEditing && props.overlay) {
@@ -122,6 +129,12 @@ export default function UpdateTask(props: Readonly<{ task: Task, overlay?: boole
       <button onClick={() => setIsEditing(!isEditing)} className={styles.task_edit}>
         <PenBoxIcon />
       </button>
+      {isDeletePending ? (
+        <>
+          <GripVertical className={styles.task_grip} />
+          <span className={styles.task_loading}></span>
+        </>
+      ): <DeleteButton onClick={handleDeleteTask} />}
     </li>
   )
 }

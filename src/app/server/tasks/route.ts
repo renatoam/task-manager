@@ -75,29 +75,38 @@ export async function POST(request: NextRequest) {
   };
 
   try {
-    const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
+    // const relayURL = process.env.RELAY_URL ?? 'http://localhost:4000'
     // const relayURL = 'http://localhost:4000'
-    const response = await fetch(`${relayURL}/producer`, {
-      method: 'POST',
-      body: JSON.stringify(newTask),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    // const response = await fetch(`${relayURL}/producer`, {
+    //   method: 'POST',
+    //   body: JSON.stringify(newTask),
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   }
+    // })
 
-    if (!response.ok) {
-      return Response.json({
-        published: false,
-        task: newTask,
-      }, { status: 500 });
-    }
+    // if (!response.ok) {
+    //   return Response.json({
+    //     published: false,
+    //     task: newTask,
+    //   }, { status: 500 });
+    // }
 
-    const data = (await response.json()) as { sent: boolean, task: Task }
+    // const data = (await response.json()) as { sent: boolean, task: Task }
 
-    console.log('Producer | message published: ', data.sent);
+    // console.log('Producer | message published: ', data.sent);
+
+    const { data: task, error } = await supabase
+        .from('tasks')
+        .insert([newTask])
+        .select("*")
+        .single()
+
+    console.log({ task })
 
     return Response.json({
-      published: data.sent,
+      // published: data.sent,
+      published: !error,
       task: newTask,
     });
   } catch (error) {
